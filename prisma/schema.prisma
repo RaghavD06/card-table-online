@@ -53,6 +53,8 @@ model User {
   receivedFriends Friend[] @relation("FriendTo")
   chatMessages    ChatMessage[]
   achievements    UserAchievement[]
+  notifications   Notification[]
+  sentInvites     RoomInvite[] @relation("InviteSender")
 }
 
 model UserProfile {
@@ -99,6 +101,7 @@ model GameRoom {
   players     RoomPlayer[]
   sessions    GameSession[]
   chat        ChatMessage[]
+  invites     RoomInvite[]
 }
 
 model RoomPlayer {
@@ -183,6 +186,27 @@ model ChatMessage {
   createdAt DateTime @default(now())
   room      GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
   sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model RoomInvite {
+  id         String   @id @default(cuid())
+  roomId     String
+  senderId   String
+  code       String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  room       GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender     User     @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Achievement {

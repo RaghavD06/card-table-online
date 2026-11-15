@@ -1,0 +1,5 @@
+import Link from "next/link";
+
+export default function ProfilePage() {
+  return <main className="min-h-screen bg-ink px-6 py-12"><div className="mx-auto max-w-3xl"><Link href="/lobby" className="text-sm text-gold">← Lobby</Link><div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-8"><p className="text-sm uppercase tracking-[0.2em] text-gold">Profile</p><h1 className="mt-3 text-4xl font-semibold">Make the table feel like yours.</h1><p className="mt-4 text-slate-400">Your display name, bio, avatar, wallet, and online presence are managed by the authenticated server session.</p><div className="mt-8 grid gap-4 md:grid-cols-3"><div className="rounded-2xl bg-black/20 p-5"><p className="text-sm text-slate-400">Wallet</p><p className="mt-2 text-2xl font-semibold text-gold">1,000 chips</p></div><div className="rounded-2xl bg-black/20 p-5"><p className="text-sm text-slate-400">Games played</p><p className="mt-2 text-2xl font-semibold">0</p></div><div className="rounded-2xl bg-black/20 p-5"><p className="text-sm text-slate-400">Presence</p><p className="mt-2 text-2xl font-semibold text-emerald-300">Online</p></div></div></div></div></main>;
+}
