@@ -1,6 +1,6 @@
 # Card Table Online
 
-Phase 2 adds the server-authoritative multiplayer room foundation. Gameplay is intentionally not implemented yet.
+Phase 3 adds the server-authoritative Texas Hold'em foundation on top of the Phase 2 multiplayer rooms.
 
 ## Setup
 
@@ -27,7 +27,13 @@ Open `http://localhost:3000`. The backend health endpoint is available at `http:
 - `packages/socket-contracts`: typed Socket.IO event contracts.
 - `prisma/schema.prisma`: durable persistence foundation.
 
-The server owns room state, player presence, host assignment, readiness, card generation, balances, and future game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
+The server owns room state, player presence, host assignment, readiness, Poker card generation, balances, and game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
+
+## Poker foundation
+
+`@card-table/game-engine` exposes a transport-independent `PokerEngine`. It uses `node:crypto` randomness by default, rotates the dealer and blinds, validates fold/check/call/bet/raise/all-in actions, evaluates seven-card hands, and settles main and side pots with deterministic split handling. The engine's internal state is never emitted; Socket.IO sends public state to the room and private hole cards only to their owner.
+
+The current UI is intentionally a small Poker table surface for validating the public/private contract. Rummy, Pot, social features, persistence of outcomes, and deployment are outside this phase.
 
 ## Multiplayer rooms
 
