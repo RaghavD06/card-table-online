@@ -3,7 +3,15 @@ import express from "express";
 import { createServer as createHttpServer, type Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import { config } from "@card-table/config";
-import { PokerDomainError, PokerEngine, type PokerState } from "@card-table/game-engine";
+import {
+  PokerDomainError,
+  PokerEngine,
+  RummyDomainError,
+  RummyEngine,
+  type PokerState,
+  type RummyState,
+} from "@card-table/game-engine";
+import type { GameCommand } from "@card-table/game-engine";
 import type { ClientToServerEvents, ServerToClientEvents } from "@card-table/socket-contracts";
 import { RoomDomainError, RoomManager } from "./rooms";
 
@@ -22,6 +30,7 @@ export function createRealtimeServer(options: { httpServer?: HttpServer; roomMan
     cors: { origin: config.WEB_ORIGIN },
   });
   const pokerStates = new Map<string, PokerState>();
+  const rummyStates = new Map<string, RummyState>();
 
   io.on("connection", (socket) => {
     socket.emit("system:ready", { serverTime: new Date().toISOString() });
@@ -32,6 +41,10 @@ export function createRealtimeServer(options: { httpServer?: HttpServer; roomMan
         return;
       }
       if (error instanceof PokerDomainError) {
+        socket.emit("error:domain", { code: error.code, message: error.message });
+        return;
+      }
+      if (error instanceof RummyDomainError) {
         socket.emit("error:domain", { code: error.code, message: error.message });
         return;
       }
@@ -77,19 +90,12 @@ export function createRealtimeServer(options: { httpServer?: HttpServer; roomMan
     socket.on("game:start", () => {
       try {
         const room = roomManager.startGame(socket.id);
-        if (room.gameType !== "POKER") {
-          throw new RoomDomainError("UNSUPPORTED_GAME", "Only Poker gameplay is available in this phase");
-        }
-        const state = pokerStates.get(room.code) ?? new PokerEngine().createInitialState(
-          room.players.filter((player) => player.connected).map((player) => player.id),
-        );
-        pokerStates.set(room.code, state);
-        const result = new PokerEngine().applyCommand(state, {
-          type: "start",
-          actorId: room.hostPlayerId,
-          requestId: `${room.code}-start-${state.handNumber + 1}`,
-          payload: null,
-        });
+        const playerIds = room.players.filter((player) => player.connected).map((player) => player.id);
+        const result = room.gameType === "POKER"
+          ? startPoker(room.code, playerIds, room.hostPlayerId)
+          : room.gameType === "RUMMY"
+            ? startRummy(room.code, playerIds, room.hostPlayerId)
+            : (() => { throw new RoomDomainError("UNSUPPORTED_GAME", "This game is not available in this phase"); })();
         io.to(room.code).emit("room:update", roomManager.toSummary(room));
         io.to(room.code).emit("game:state", result.publicState);
         emitPrivateStates(room, result.privateStates);
@@ -101,10 +107,13 @@ export function createRealtimeServer(options: { httpServer?: HttpServer; roomMan
     socket.on("game:action", (command) => {
       try {
         const room = roomManager.getRoomForSocket(socket.id);
-        if (!room || room.gameType !== "POKER") throw new RoomDomainError("NOT_IN_GAME", "Player is not in a Poker room");
-        const state = pokerStates.get(room.code);
-        if (!state) throw new PokerDomainError("NO_HAND", "There is no active hand");
-        const result = new PokerEngine().applyCommand(state, { ...command, actorId: room.players.find((player) => player.socketId === socket.id)?.id ?? "" });
+        if (!room || (room.gameType !== "POKER" && room.gameType !== "RUMMY")) {
+          throw new RoomDomainError("NOT_IN_GAME", "Player is not in a supported game room");
+        }
+        const actorId = room.players.find((player) => player.socketId === socket.id)?.id ?? "";
+        const result = room.gameType === "POKER"
+          ? applyPokerAction(room.code, { ...command, actorId })
+          : applyRummyAction(room.code, { ...command, actorId });
         io.to(room.code).emit("game:state", result.publicState);
         emitPrivateStates(room, result.privateStates);
       } catch (error) {
@@ -132,6 +141,40 @@ export function createRealtimeServer(options: { httpServer?: HttpServer; roomMan
       if (room) io.to(room.code).emit("room:update", roomManager.toSummary(room));
     });
   });
+
+  function startPoker(code: string, playerIds: string[], hostPlayerId: string) {
+    const state = pokerStates.get(code) ?? new PokerEngine().createInitialState(playerIds);
+    pokerStates.set(code, state);
+    return new PokerEngine().applyCommand(state, {
+      type: "start",
+      actorId: hostPlayerId,
+      requestId: `${code}-start-${state.handNumber + 1}`,
+      payload: null,
+    });
+  }
+
+  function startRummy(code: string, playerIds: string[], hostPlayerId: string) {
+    const state = rummyStates.get(code) ?? new RummyEngine().createInitialState(playerIds);
+    rummyStates.set(code, state);
+    return new RummyEngine().applyCommand(state, {
+      type: "start",
+      actorId: hostPlayerId,
+      requestId: `${code}-start-${state.roundNumber + 1}`,
+      payload: null,
+    });
+  }
+
+  function applyPokerAction(code: string, command: GameCommand) {
+    const state = pokerStates.get(code);
+    if (!state) throw new PokerDomainError("NO_HAND", "There is no active hand");
+    return new PokerEngine().applyCommand(state, command);
+  }
+
+  function applyRummyAction(code: string, command: GameCommand) {
+    const state = rummyStates.get(code);
+    if (!state) throw new RummyDomainError("NO_ROUND", "There is no active round");
+    return new RummyEngine().applyCommand(state, command);
+  }
 
   return { httpServer, io, roomManager };
 }
