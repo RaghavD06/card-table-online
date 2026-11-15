@@ -136,6 +136,21 @@ export class RoomManager {
     return room;
   }
 
+  startGame(socketId: string) {
+    const room = this.requireSocketRoom(socketId);
+    const player = room.players.find((candidate) => candidate.socketId === socketId);
+    if (!player || player.id !== room.hostPlayerId) {
+      throw new RoomDomainError("NOT_HOST", "Only the host may start the game");
+    }
+    const connected = this.getConnectedPlayers(room);
+    if (connected.length < 2 || !connected.every((candidate) => candidate.ready)) {
+      throw new RoomDomainError("ROOM_NOT_READY", "Every connected player must be ready before starting");
+    }
+    room.status = "PLAYING";
+    this.persist(room);
+    return room;
+  }
+
   getRoomForSocket(socketId: string) {
     return this.findBySocket(socketId);
   }

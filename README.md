@@ -1,6 +1,6 @@
 # Card Table Online
 
-The server-authoritative multiplayer room foundation includes transport-independent Rummy and Pot engines in `packages/game-engine`. Room lifecycle and gameplay remain separate concerns.
+The server-authoritative multiplayer platform includes transport-independent Poker, Rummy, and Pot engines in `packages/game-engine`. Room lifecycle and gameplay remain separate concerns.
 
 ## Setup
 
@@ -55,7 +55,13 @@ step rather than making every container boot mutate the database.
 - `packages/socket-contracts`: typed Socket.IO event contracts.
 - `prisma/schema.prisma`: durable persistence foundation.
 
-The server owns room state, player presence, host assignment, readiness, card generation, balances, and future game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
+The server owns room state, player presence, host assignment, readiness, Poker card generation, balances, and game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
+
+## Poker foundation
+
+`@card-table/game-engine` exposes a transport-independent `PokerEngine`. It uses `node:crypto` randomness by default, rotates the dealer and blinds, validates fold/check/call/bet/raise/all-in actions, evaluates seven-card hands, and settles main and side pots with deterministic split handling. The engine's internal state is never emitted; Socket.IO sends public state to the room and private hole cards only to their owner.
+
+The current UI is intentionally a small Poker table surface for validating the public/private contract. Rummy, Pot, social features, persistence of outcomes, and deployment are outside this phase.
 
 ## Authentication and persistence
 

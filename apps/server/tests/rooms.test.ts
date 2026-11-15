@@ -55,4 +55,20 @@ describe("room infrastructure", () => {
     manager.setReady("socket-2", true);
     expect(manager.getRoomForSocket("socket-1")?.status).toBe("READY");
   });
+
+  it("only lets the ready host start a game", () => {
+    const manager = new RoomManager();
+    const room = manager.createRoom({
+      gameType: "POKER",
+      maxPlayers: 2,
+      playerId: "user-1",
+      playerName: "Alice",
+      socketId: "socket-1",
+    });
+    manager.joinRoom({ code: room.code, playerId: "user-2", playerName: "Bob", socketId: "socket-2" });
+    manager.setReady("socket-1", true);
+    manager.setReady("socket-2", true);
+
+    expect(manager.startGame("socket-1").status).toBe("PLAYING");
+  });
 });
