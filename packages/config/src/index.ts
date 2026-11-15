@@ -7,6 +7,7 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1).default("postgresql://cardtable:cardtable@localhost:5432/cardtable?schema=public"),
   REDIS_URL: z.string().min(1).default("redis://localhost:6379"),
   AUTH_SECRET: z.string().min(16).default("development-only-change-me"),
+  SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 }).superRefine((value, context) => {
@@ -24,4 +25,7 @@ const schema = z.object({
 });
 
 export const config = schema.parse(process.env);
+if (config.NODE_ENV === "production" && config.AUTH_SECRET === "development-only-change-me") {
+  throw new Error("AUTH_SECRET must be set to a non-development value in production");
+}
 export type AppConfig = typeof config;

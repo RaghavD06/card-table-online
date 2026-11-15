@@ -57,6 +57,12 @@ step rather than making every container boot mutate the database.
 
 The server owns room state, player presence, host assignment, readiness, card generation, balances, and future game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
 
+## Authentication and persistence
+
+`POST /auth/guest` with `{ "displayName": "Alice" }` creates a durable guest user and returns `{ session, token }`. Send the token as `Authorization: Bearer <token>` for `GET /auth/session`, or as Socket.IO `auth.token`; the server derives the player identity from the session rather than trusting client-supplied IDs. Sessions are stored as HMAC-hashed tokens and expire according to `SESSION_TTL_DAYS`.
+
+Open rooms and their players are persisted through Prisma in `GameRoom` and `RoomPlayer` and rehydrated before the server starts accepting connections. PostgreSQL is required for production; Redis remains reserved for future multi-process ephemeral coordination.
+
 ## Multiplayer rooms
 
 The Socket.IO server supports `room:create`, `room:join`, `room:leave`, and `room:ready`. Room codes are six-character uppercase codes without ambiguous characters. A stable optional `playerId` lets a disconnected player reconnect to the same seat; otherwise the socket ID is used. Disconnects mark a player offline and transfer the host role to the first connected player.

@@ -16,6 +16,8 @@ export interface RoomStateStore {
   values(): RoomState[];
 }
 
+export type RoomPersistence = (room: RoomState) => Promise<void>;
+
 export class InMemoryRoomStateStore implements RoomStateStore {
   private readonly rooms = new Map<string, RoomState>();
 
@@ -48,6 +50,7 @@ export class RoomManager {
   constructor(
     private readonly store: RoomStateStore = new InMemoryRoomStateStore(),
     private readonly codeLength = 6,
+    private readonly persistence?: RoomPersistence,
   ) {}
 
   createRoom(input: {
@@ -80,6 +83,7 @@ export class RoomManager {
       }],
     };
     this.store.set(room);
+    this.persist(room);
     return room;
   }
 
@@ -194,5 +198,10 @@ export class RoomManager {
   private persist(room: RoomState) {
     room.playerCount = room.players.length;
     this.store.set(room);
+    if (this.persistence) {
+      void this.persistence(room).catch((error: unknown) => {
+        console.error("Failed to persist room state", error);
+      });
+    }
   }
 }

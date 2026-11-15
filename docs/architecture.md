@@ -4,6 +4,8 @@ The web app is a presentation client. The Node server is the sole authority for 
 
 Phase 2 room lifecycle is implemented by `apps/server/src/rooms.ts`. `RoomManager` owns code generation, membership, reconnects, readiness, and host reassignment. Socket.IO only translates events into domain operations and broadcasts authoritative `RoomSummary` projections. `RoomStateStore` is the explicit storage boundary; `InMemoryRoomStateStore` is used by the current single-process server and tests, while a Redis implementation can be introduced without changing the domain or transport layer.
 
-`packages/shared/src/auth.ts` defines the application session shape and provider boundary. A future Auth.js adapter can map email/password, Google, and guest identities to this contract without coupling game code to a provider.
+`packages/shared/src/auth.ts` defines the application session shape and provider boundary. `apps/server/src/auth.ts` implements durable guest and provider identity sessions with HMAC-hashed bearer tokens in Prisma. Socket.IO resolves an optional bearer token during the handshake and derives player identity from it; unauthenticated development clients retain the phase-2 fallback identity path.
+
+`apps/server/src/persistence.ts` provides the Prisma room/player adapter. Open rooms are rehydrated before the production server listens, and authoritative room transitions are persisted after each domain mutation.
 
 Each game implements a transport-independent `GameEngine` contract. Socket.IO and persistence depend on that contract, not on game rules. `packages/game-engine` contains deterministic Rummy and Pot implementations; the engines own deck order, private hands, turn validation, action events, and terminal state transitions.

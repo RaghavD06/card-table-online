@@ -27,3 +27,5 @@ export interface PlayerSummary {
   ready: boolean;
   isHost: boolean;
 }
+
+export type { AuthBoundary, AuthIdentity, AuthSessionToken } from "./auth";
