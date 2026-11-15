@@ -4,7 +4,7 @@
   "private": true,
   "main": "src/index.ts",
   "types": "src/index.ts",
-  "scripts": { "typecheck": "tsc --noEmit", "test": "node -e \"process.exit(0)\"" },
+  "scripts": { "build": "tsc", "typecheck": "tsc --noEmit", "test": "node -e \"process.exit(0)\"" },
   "dependencies": {
     "@card-table/game-engine": "0.1.0",
     "@card-table/shared": "0.1.0"
