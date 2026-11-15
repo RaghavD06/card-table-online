@@ -2,8 +2,8 @@ import type { GameCommand, PublicGameState } from "@card-table/game-engine";
 import type { GameType, RoomSummary } from "@card-table/shared";
 
 export interface ClientToServerEvents {
-  "room:create": (payload: { gameType: GameType; maxPlayers: number }) => void;
-  "room:join": (payload: { code: string; password?: string }) => void;
+  "room:create": (payload: { gameType: GameType; maxPlayers: number; playerId?: string; playerName?: string }) => void;
+  "room:join": (payload: { code: string; password?: string; playerId?: string; playerName?: string }) => void;
   "room:leave": () => void;
   "room:ready": (payload: { ready: boolean }) => void;
   "game:start": () => void;

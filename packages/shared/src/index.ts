@@ -16,4 +16,14 @@ export interface RoomSummary {
   status: RoomStatus;
   playerCount: number;
   maxPlayers: number;
+  hostPlayerId: string;
+  players: PlayerSummary[];
+}
+
+export interface PlayerSummary {
+  id: string;
+  name: string;
+  connected: boolean;
+  ready: boolean;
+  isHost: boolean;
 }
