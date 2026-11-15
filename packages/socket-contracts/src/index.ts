@@ -1,4 +1,4 @@
-import type { GameCommand, PokerPublicState, PublicGameState } from "@card-table/game-engine";
+import type { GameCommand, PokerPublicState, PublicGameState, RummyPublicState } from "@card-table/game-engine";
 import type { GameType, RoomSummary } from "@card-table/shared";
 
 export interface ClientToServerEvents {
@@ -14,7 +14,7 @@ export interface ClientToServerEvents {
 export interface ServerToClientEvents {
   "system:ready": (payload: { serverTime: string }) => void;
   "room:update": (room: RoomSummary) => void;
-  "game:state": (state: PublicGameState | PokerPublicState) => void;
+  "game:state": (state: PublicGameState | PokerPublicState | RummyPublicState) => void;
   "game:private-state": (state: unknown) => void;
   "chat:message": (payload: { id: string; senderId: string; body: string }) => void;
   "error:domain": (payload: { code: string; message: string }) => void;

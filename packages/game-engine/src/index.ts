@@ -31,3 +31,4 @@ export interface GameEngine<State extends PublicGameState = PublicGameState> {
 }
 
 export * from "./poker";
+export * from "./rummy";
