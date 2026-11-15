@@ -137,7 +137,18 @@ export class SocialService {
       if (input.bio.length > MAX_BIO) throw new PlatformError("BIO_TOO_LONG", `Bio must be ${MAX_BIO} characters or fewer`);
       user.bio = input.bio.trim();
     }
-    if (input.avatarUrl !== undefined) user.avatarUrl = input.avatarUrl.trim().slice(0, 500);
+    if (input.avatarUrl !== undefined) {
+      const avatarUrl = input.avatarUrl.trim();
+      if (avatarUrl) {
+        try {
+          const parsed = new URL(avatarUrl);
+          if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("unsupported protocol");
+        } catch {
+          throw new PlatformError("INVALID_AVATAR_URL", "Avatar URL must be a valid HTTP(S) URL");
+        }
+      }
+      user.avatarUrl = avatarUrl.slice(0, 500);
+    }
     return this.profile(userId);
   }
 

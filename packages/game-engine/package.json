@@ -4,6 +4,7 @@
   "private": true,
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "exports": { ".": { "types": "./src/index.ts", "development": "./src/index.ts", "node": "./dist/index.js", "import": "./src/index.ts", "default": "./src/index.ts" } },
   "scripts": { "build": "tsc", "typecheck": "tsc --noEmit", "test": "vitest run" },
   "dependencies": { "@card-table/shared": "0.1.0" },
   "devDependencies": { "typescript": "^5.7.3", "vitest": "^2.1.8" }

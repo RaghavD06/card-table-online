@@ -15,6 +15,25 @@ export async function disconnectPrisma() {
   }
 }
 
+export async function checkDatabaseReadiness(timeoutMs = 1_500) {
+  const prisma = getPrismaClient();
+  if (!prisma) return { ok: false, reason: "DATABASE_URL is not configured" };
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("database readiness timeout")), timeoutMs);
+      }),
+    ]);
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const, reason: "database is unavailable" };
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 export async function persistWalletSnapshot(userId: string, balance: number, amount: number, reason: string) {
   const prisma = getPrismaClient();
   if (!prisma) return;
