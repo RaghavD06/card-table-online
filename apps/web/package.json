@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@card-table/shared": "0.1.0",
+    "@card-table/socket-contracts": "0.1.0",
     "framer-motion": "^11.15.0",
     "next": "^15.1.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "socket.io-client": "^4.8.4",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
