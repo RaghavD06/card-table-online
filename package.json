@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "concurrently \"npm run dev -w @card-table/web\" \"npm run dev -w @card-table/server\"",
     "build": "npm run build -ws",
+    "build:web": "npm run build -w @card-table/web",
+    "start:server": "npm run start -w @card-table/server",
     "test": "npm run test -ws",
     "typecheck": "npm run typecheck -ws"
   },

@@ -17,6 +17,34 @@ npm run dev
 
 Open `http://localhost:3000`. The backend health endpoint is available at `http://localhost:4000/health`.
 
+## Production deployment
+
+The web app is configured for Vercel through `vercel.json`. Create the Vercel project
+from the repository root and keep the build command as `npm run build:web`. Set
+`NEXT_PUBLIC_SERVER_URL` (when the web client begins using it) to the public server
+origin; do not proxy Socket.IO through Vercel.
+
+The server is configured as a Docker web service in `render.yaml` and can also be
+deployed to Railway using `apps/server/Dockerfile` with the repository root as the
+Docker context. Both providers must expose the server's `/health` endpoint and
+provide their dynamic `PORT`. Socket.IO requires a long-lived Node process and
+WebSocket/HTTP upgrade support; do not deploy the server as a serverless function.
+
+Production server variables are required explicitly:
+
+- `NODE_ENV=production`
+- `PORT` (provider-assigned; `SERVER_PORT` remains available for local use)
+- `WEB_ORIGIN` (the exact public Vercel origin, including scheme and no trailing path)
+- `DATABASE_URL` (managed PostgreSQL connection string)
+- `REDIS_URL` (managed Redis connection string; reserved for shared room/presence coordination)
+- `AUTH_SECRET` (a long random secret; never commit it)
+
+`WEB_ORIGIN` is used for both Express CORS and Socket.IO CORS. Keep the web and server
+on HTTPS in production, and configure the provider's health check to call
+`GET /health`. Database schema deployment is intentionally separate from image startup;
+run the repository's Prisma migration/deployment procedure from a controlled release
+step rather than making every container boot mutate the database.
+
 ## Architecture
 
 - `apps/web`: Next.js App Router shell and design system.
