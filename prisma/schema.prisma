@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  GUEST
+}
+
+enum GameType {
+  POKER
+  RUMMY
+  POT
+}
+
+enum RoomStatus {
+  WAITING
+  READY
+  PLAYING
+  ROUND_COMPLETE
+  CLOSED
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+model User {
+  id              String   @id @default(cuid())
+  username        String   @unique
+  email           String?  @unique
+  passwordHash    String?
+  guest           Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  profile         UserProfile?
+  identities      UserIdentity[]
+  hostedRooms     GameRoom[] @relation("RoomHost")
+  roomPlayers     RoomPlayer[]
+  statistics      PlayerStatistics?
+  histories       GameHistory[]
+  wallet          VirtualWallet?
+  transactions    ChipTransaction[]
+  sentFriends     Friend[] @relation("FriendFrom")
+  receivedFriends Friend[] @relation("FriendTo")
+  chatMessages    ChatMessage[]
+  achievements    UserAchievement[]
+}
+
+model UserProfile {
+  id        String @id @default(cuid())
+  userId    String @unique
+  avatarUrl String?
+  displayName String?
+  bio       String?
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserIdentity {
+  id                String       @id @default(cuid())
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Friend {
+  id        String           @id @default(cuid())
+  fromId    String
+  toId      String
+  status    FriendshipStatus @default(PENDING)
+  createdAt DateTime         @default(now())
+  from      User @relation("FriendFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to        User @relation("FriendTo", fields: [toId], references: [id], onDelete: Cascade)
+  @@unique([fromId, toId])
+}
+
+model GameRoom {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  gameType    GameType
+  status      RoomStatus @default(WAITING)
+  hostId      String
+  maxPlayers  Int
+  passwordHash String?
+  settings    Json
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  host        User       @relation("RoomHost", fields: [hostId], references: [id])
+  players     RoomPlayer[]
+  sessions    GameSession[]
+  chat        ChatMessage[]
+}
+
+model RoomPlayer {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  ready     Boolean  @default(false)
+  connected Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+  room      GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([roomId, userId])
+}
+
+model GameSession {
+  id        String      @id @default(cuid())
+  roomId    String
+  gameType  GameType
+  startedAt DateTime    @default(now())
+  endedAt   DateTime?
+  room      GameRoom    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  rounds    GameRound[]
+}
+
+model GameRound {
+  id          String       @id @default(cuid())
+  sessionId   String
+  roundNumber Int
+  state       Json
+  winnerIds   String[]
+  startedAt   DateTime     @default(now())
+  endedAt     DateTime?
+  session     GameSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  histories   GameHistory[]
+  @@unique([sessionId, roundNumber])
+}
+
+model PlayerStatistics {
+  id           String @id @default(cuid())
+  userId       String @unique
+  gamesPlayed  Int    @default(0)
+  gamesWon     Int    @default(0)
+  handsPlayed  Int    @default(0)
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GameHistory {
+  id        String     @id @default(cuid())
+  userId    String
+  roundId   String
+  gameType  GameType
+  result    Json
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  round     GameRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+}
+
+model VirtualWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   BigInt   @default(0)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChipTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      BigInt
+  balanceAfter BigInt
+  reason      String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  roomId    String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+  room      GameRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Achievement {
+  id          String @id @default(cuid())
+  key         String @unique
+  name        String
+  description String
+  users       UserAchievement[]
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  earnedAt      DateTime @default(now())
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  @@id([userId, achievementId])
+}

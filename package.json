@@ -1,0 +1,17 @@
+{
+  "name": "card-table-online",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "npm@10",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @card-table/web\" \"npm run dev -w @card-table/server\"",
+    "build": "npm run build -ws",
+    "test": "npm run test -ws",
+    "typecheck": "npm run typecheck -ws"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}
