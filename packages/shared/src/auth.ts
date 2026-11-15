@@ -12,3 +12,9 @@ export interface AuthBoundary {
   authenticate(identity: AuthIdentity): Promise<AuthSession>;
   resolveSession(sessionToken: string): Promise<AuthSession | null>;
 }
+
+export interface PasswordAuthBoundary extends AuthBoundary {
+  registerEmail(email: string, password: string, displayName: string): Promise<AuthSession>;
+  loginEmail(email: string, password: string): Promise<AuthSession>;
+  beginGoogleLogin(): { enabled: boolean; authorizationUrl?: string };
+}

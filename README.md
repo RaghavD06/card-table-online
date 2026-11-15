@@ -35,7 +35,7 @@ The server owns room state, player presence, host assignment, readiness, Poker c
 
 `RummyEngine` provides server-authoritative draw/discard turns and declaration scoring. `PotEngine` provides In-Between/Acey-Deucey with cryptographic card generation, configurable ace ranking, strict-between evaluation, pass handling, integer min/max bet validation, duplicate request protection, 1:1 balance settlement, and turn rotation. The Pot UI foundation is available at `/pot`.
 
-Social features, persistence of outcomes, and deployment are outside this phase.
+Phase 6 adds the social/auth boundary and local persistence seams. Use `/auth` for email/password or guest sessions, `/lobby` for the social navigation surface, and `/profile`, `/friends`, `/history`, and `/settings` for account projections. Server APIs live under `/api/auth/*`, `/api/me/*`, and `/api/invitations`; Socket.IO accepts `handshake.auth.sessionToken`, rejects unauthenticated room chat, and broadcasts only to current room members. Google remains disabled until `GOOGLE_CLIENT_ID` is configured. Prisma schema models cover users, identities, wallets, transactions, friendships, game history, notifications, and room invites; run `npm run db:generate` and `npm run db:push` after configuring PostgreSQL.
 
 ## Multiplayer rooms
 

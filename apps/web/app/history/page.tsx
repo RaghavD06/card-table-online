@@ -1,0 +1,5 @@
+import Link from "next/link";
+
+export default function HistoryPage() {
+  return <main className="min-h-screen bg-ink px-6 py-12"><div className="mx-auto max-w-3xl"><Link href="/lobby" className="text-sm text-gold">← Lobby</Link><h1 className="mt-8 text-4xl font-semibold">Game history</h1><div className="mt-8 grid gap-4 md:grid-cols-3"><div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><p className="text-sm text-slate-400">Games played</p><p className="mt-2 text-3xl font-semibold">0</p></div><div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><p className="text-sm text-slate-400">Games won</p><p className="mt-2 text-3xl font-semibold">0</p></div><div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"><p className="text-sm text-slate-400">Win rate</p><p className="mt-2 text-3xl font-semibold">—</p></div></div><div className="mt-6 rounded-2xl border border-dashed border-white/15 p-8 text-center text-slate-400">Completed rounds will appear here after the server records their authoritative result.</div></div></main>;
+}
