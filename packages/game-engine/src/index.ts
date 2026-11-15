@@ -30,7 +30,8 @@ export interface GameEngine<State extends PublicGameState = PublicGameState> {
   applyCommand(state: State, command: GameCommand): EngineResult;
 }
 
-export { Card, RANKS, SUITS, cardRank, cardSuit, createDeck, isCard, isStrictlyBetween, rankValue } from "./cards";
+export { RANKS, SUITS, cardRank, cardSuit, createDeck, isCard, isStrictlyBetween, rankValue } from "./cards";
+export type { Card } from "./cards";
 export { PotGameEngine, potGameEngine } from "./pot";
 export type { PotPhase, PotPlayerStatus, PotPlayerView, PotState } from "./pot";
 export { RummyGameEngine, rummyGameEngine } from "./rummy";

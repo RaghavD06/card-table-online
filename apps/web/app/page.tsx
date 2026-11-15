@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { io, type Socket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@card-table/socket-contracts";
 import type { GameType, RoomSummary } from "@card-table/shared";
+import type { PokerPublicState } from "@card-table/game-engine";
+
+type PokerCard = { rank: number; suit: "C" | "D" | "H" | "S" };
 
 type RoomSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 type PlayerIdentity = { id: string; name: string };
@@ -48,6 +51,8 @@ export default function HomePage() {
   const [maxPlayers, setMaxPlayers] = useState("4");
   const [error, setError] = useState<string>();
   const [connectionState, setConnectionState] = useState<"connecting" | "connected" | "offline">("connecting");
+  const [gameState, setGameState] = useState<PokerPublicState>();
+  const [privateCards, setPrivateCards] = useState<PokerCard[]>([]);
 
   useEffect(() => {
     const savedIdentity = loadIdentity();
@@ -77,6 +82,14 @@ export default function HomePage() {
       if (code === "ROOM_NOT_FOUND") window.localStorage.removeItem(ROOM_KEY);
       setError(message);
     });
+    socket.on("game:state", (nextState) => {
+      if (nextState.gameType === "POKER") setGameState(nextState);
+    });
+    socket.on("game:private-state", (nextState) => {
+      if (nextState && typeof nextState === "object" && "holeCards" in nextState && Array.isArray(nextState.holeCards)) {
+        setPrivateCards(nextState.holeCards as PokerCard[]);
+      }
+    });
 
     return () => {
       socket.removeAllListeners();
@@ -105,6 +118,16 @@ export default function HomePage() {
     if (!name.trim()) return setError("Enter a display name before joining a room.");
     if (!roomCode.trim()) return setError("Enter a room code.");
     emit("room:join", { code: roomCode.trim(), playerId: identity.id, playerName: name.trim() });
+  };
+  const startGame = () => socketRef.current?.emit("game:start");
+  const sendPokerAction = (type: "fold" | "check" | "call") => {
+    if (!gameState) return;
+    socketRef.current?.emit("game:action", {
+      type,
+      actorId: identity.id,
+      requestId: `${identity.id}-${Date.now()}`,
+      payload: type === "call" ? { amount: Math.max(0, gameState.currentBet - (gameState.players.find((player) => player.id === identity.id)?.committed ?? 0)) } : null,
+    });
   };
 
   return (
@@ -172,7 +195,28 @@ export default function HomePage() {
                 <div className="mt-5 space-y-3">{room.players.map((player) => <div key={player.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink/60 px-4 py-3"><div><p className="font-medium">{player.name} {player.id === identity.id ? <span className="text-slate-500">(you)</span> : null}</p><p className="text-xs text-slate-500">{player.connected ? "Connected" : "Reconnecting…"}</p></div><div className="flex items-center gap-2 text-xs uppercase tracking-[0.12em]">{player.isHost ? <span className="rounded-full bg-gold/20 px-3 py-1 text-gold">Host</span> : null}<span className={player.ready ? "text-emerald-400" : "text-slate-500"}>{player.ready ? "Ready" : "Not ready"}</span></div></div>)}</div>
                 <button onClick={() => emit("room:ready", { ready: !currentPlayer?.ready })} className="mt-6 w-full rounded-full bg-emerald-500 px-6 py-3 font-semibold text-ink">{currentPlayer?.ready ? "Mark not ready" : "Mark ready"}</button>
               </div>
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6"><p className="text-xs uppercase tracking-[0.2em] text-gold">Future game state</p><h2 className="mt-4 text-2xl font-semibold">The table is being dealt.</h2><p className="mt-3 leading-7 text-slate-400">Game commands and private hands will appear here in the next phase. For now, use this room to confirm everyone is present and ready.</p><div className="mt-8 rounded-2xl border border-dashed border-white/15 p-5 text-sm text-slate-500">Ready state is authoritative and synchronized live.</div></div>
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+                {room.gameType === "POKER" && gameState ? (
+                  <>
+                    <p className="text-xs uppercase tracking-[0.2em] text-gold">Texas Hold&apos;em</p>
+                    <h2 className="mt-4 text-2xl font-semibold">{gameState.phase} · Pot {gameState.pot}</h2>
+                    <div className="mt-5 flex flex-wrap gap-2">{gameState.board.map((card) => <PlayingCard key={`${card.rank}-${card.suit}`} card={card} />)}</div>
+                    <div className="mt-5 flex gap-2">{privateCards.map((card) => <PlayingCard key={`${card.rank}-${card.suit}`} card={card} />)}</div>
+                    <div className="mt-6 flex flex-wrap gap-2">
+                      <button onClick={() => sendPokerAction("fold")} className="rounded-full border border-white/15 px-4 py-2 text-sm">Fold</button>
+                      <button onClick={() => sendPokerAction("check")} disabled={gameState.currentPlayerId !== identity.id} className="rounded-full border border-white/15 px-4 py-2 text-sm disabled:opacity-40">Check</button>
+                      <button onClick={() => sendPokerAction("call")} disabled={gameState.currentPlayerId !== identity.id} className="rounded-full bg-gold px-4 py-2 text-sm font-semibold text-ink disabled:opacity-40">Call</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs uppercase tracking-[0.2em] text-gold">Table state</p>
+                    <h2 className="mt-4 text-2xl font-semibold">Ready when you are.</h2>
+                    <p className="mt-3 leading-7 text-slate-400">Ready state is authoritative and synchronized live.</p>
+                    {currentPlayer?.isHost && room.status === "READY" ? <button onClick={startGame} className="mt-6 w-full rounded-full bg-gold px-6 py-3 font-semibold text-ink">Start game</button> : null}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -180,5 +224,10 @@ export default function HomePage() {
       </section>
     </main>
   );
+}
+
+function PlayingCard({ card }: { card: PokerCard }) {
+  const rank = card.rank <= 10 ? String(card.rank) : ({ 11: "J", 12: "Q", 13: "K", 14: "A" } as Record<number, string>)[card.rank];
+  return <div className="flex h-14 w-10 items-center justify-center rounded-lg border border-white/20 bg-[#f7f5ef] text-sm font-semibold text-ink">{rank}{card.suit}</div>;
 }
 
