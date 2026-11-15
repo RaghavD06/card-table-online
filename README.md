@@ -1,6 +1,6 @@
 # Card Table Online
 
-Phase 3 adds the server-authoritative Texas Hold'em foundation on top of the Phase 2 multiplayer rooms.
+Phase 7 finalizes the inherited server-authoritative multiplayer stack with production boundaries, deployment manifests, readiness checks, and CI validation. See [deployment](docs/deployment.md) and [phase status](docs/phase-7-status.md) for supported behavior and external-account blockers.
 
 ## Setup
 
@@ -28,6 +28,10 @@ Open `http://localhost:3000`. The backend health endpoint is available at `http:
 - `prisma/schema.prisma`: durable persistence foundation.
 
 The server owns room state, player presence, host assignment, readiness, Poker card generation, balances, and game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
+
+## Production validation
+
+Use `npm ci`, `npm run db:generate`, `npm run typecheck`, `npm run test`, `npm run build`, and `npm run diff:check`. Production deployment configuration and required secrets are documented in [docs/deployment.md](docs/deployment.md).
 
 ## Game foundations
 
