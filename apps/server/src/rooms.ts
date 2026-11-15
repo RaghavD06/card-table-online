@@ -16,6 +16,8 @@ export interface RoomStateStore {
   values(): RoomState[];
 }
 
+export type RoomPersistence = (room: RoomState) => Promise<void>;
+
 export class InMemoryRoomStateStore implements RoomStateStore {
   private readonly rooms = new Map<string, RoomState>();
 
@@ -48,6 +50,7 @@ export class RoomManager {
   constructor(
     private readonly store: RoomStateStore = new InMemoryRoomStateStore(),
     private readonly codeLength = 6,
+    private readonly persistence?: RoomPersistence,
   ) {}
 
   createRoom(input: {
@@ -80,6 +83,7 @@ export class RoomManager {
       }],
     };
     this.store.set(room);
+    this.persist(room);
     return room;
   }
 
@@ -128,6 +132,21 @@ export class RoomManager {
     room.status = this.getConnectedPlayers(room).length > 0 && this.getConnectedPlayers(room).every((candidate) => candidate.ready)
       ? "READY"
       : "WAITING";
+    this.persist(room);
+    return room;
+  }
+
+  startGame(socketId: string) {
+    const room = this.requireSocketRoom(socketId);
+    const player = room.players.find((candidate) => candidate.socketId === socketId);
+    if (!player || player.id !== room.hostPlayerId) {
+      throw new RoomDomainError("NOT_HOST", "Only the host may start the game");
+    }
+    const connected = this.getConnectedPlayers(room);
+    if (connected.length < 2 || !connected.every((candidate) => candidate.ready)) {
+      throw new RoomDomainError("ROOM_NOT_READY", "Every connected player must be ready before starting");
+    }
+    room.status = "PLAYING";
     this.persist(room);
     return room;
   }
@@ -194,5 +213,10 @@ export class RoomManager {
   private persist(room: RoomState) {
     room.playerCount = room.players.length;
     this.store.set(room);
+    if (this.persistence) {
+      void this.persistence(room).catch((error: unknown) => {
+        console.error("Failed to persist room state", error);
+      });
+    }
   }
 }

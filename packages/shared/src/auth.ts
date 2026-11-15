@@ -12,3 +12,8 @@ export interface AuthBoundary {
   authenticate(identity: AuthIdentity): Promise<AuthSession>;
   resolveSession(sessionToken: string): Promise<AuthSession | null>;
 }
+
+export interface AuthSessionToken {
+  session: AuthSession;
+  token: string;
+}

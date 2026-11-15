@@ -43,6 +43,7 @@ model User {
   updatedAt       DateTime @updatedAt
   profile         UserProfile?
   identities      UserIdentity[]
+  authSessions    AuthSession[]
   hostedRooms     GameRoom[] @relation("RoomHost")
   roomPlayers     RoomPlayer[]
   statistics      PlayerStatistics?
@@ -71,6 +72,16 @@ model UserIdentity {
   providerAccountId String
   user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@unique([provider, providerAccountId])
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([expiresAt])
 }
 
 model Friend {

@@ -1,6 +1,6 @@
 # Card Table Online
 
-Phase 2 adds the server-authoritative multiplayer room foundation. Gameplay is intentionally not implemented yet.
+The server-authoritative multiplayer platform includes transport-independent Poker, Rummy, and Pot engines in `packages/game-engine`. Room lifecycle and gameplay remain separate concerns.
 
 ## Setup
 
@@ -17,17 +17,57 @@ npm run dev
 
 Open `http://localhost:3000`. The backend health endpoint is available at `http://localhost:4000/health`.
 
+## Production deployment
+
+The web app is configured for Vercel through `vercel.json`. Create the Vercel project
+from the repository root and keep the build command as `npm run build:web`. Set
+`NEXT_PUBLIC_SERVER_URL` (when the web client begins using it) to the public server
+origin; do not proxy Socket.IO through Vercel.
+
+The server is configured as a Docker web service in `render.yaml` and can also be
+deployed to Railway using `apps/server/Dockerfile` with the repository root as the
+Docker context. Both providers must expose the server's `/health` endpoint and
+provide their dynamic `PORT`. Socket.IO requires a long-lived Node process and
+WebSocket/HTTP upgrade support; do not deploy the server as a serverless function.
+
+Production server variables are required explicitly:
+
+- `NODE_ENV=production`
+- `PORT` (provider-assigned; `SERVER_PORT` remains available for local use)
+- `WEB_ORIGIN` (the exact public Vercel origin, including scheme and no trailing path)
+- `DATABASE_URL` (managed PostgreSQL connection string)
+- `REDIS_URL` (managed Redis connection string; reserved for shared room/presence coordination)
+- `AUTH_SECRET` (a long random secret; never commit it)
+
+`WEB_ORIGIN` is used for both Express CORS and Socket.IO CORS. Keep the web and server
+on HTTPS in production, and configure the provider's health check to call
+`GET /health`. Database schema deployment is intentionally separate from image startup;
+run the repository's Prisma migration/deployment procedure from a controlled release
+step rather than making every container boot mutate the database.
+
 ## Architecture
 
 - `apps/web`: Next.js App Router shell and design system.
 - `apps/server`: Node.js/TypeScript HTTP and Socket.IO boundary.
 - `packages/config`: validated environment configuration.
-- `packages/game-engine`: transport-independent game contracts.
+- `packages/game-engine`: transport-independent game contracts plus deterministic Rummy and Pot rules.
 - `packages/shared`: domain primitives and authentication boundary contracts.
 - `packages/socket-contracts`: typed Socket.IO event contracts.
 - `prisma/schema.prisma`: durable persistence foundation.
 
-The server owns room state, player presence, host assignment, readiness, card generation, balances, and future game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
+The server owns room state, player presence, host assignment, readiness, Poker card generation, balances, and game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
+
+## Poker foundation
+
+`@card-table/game-engine` exposes a transport-independent `PokerEngine`. It uses `node:crypto` randomness by default, rotates the dealer and blinds, validates fold/check/call/bet/raise/all-in actions, evaluates seven-card hands, and settles main and side pots with deterministic split handling. The engine's internal state is never emitted; Socket.IO sends public state to the room and private hole cards only to their owner.
+
+The current UI is intentionally a small Poker table surface for validating the public/private contract. Rummy, Pot, social features, persistence of outcomes, and deployment are outside this phase.
+
+## Authentication and persistence
+
+`POST /auth/guest` with `{ "displayName": "Alice" }` creates a durable guest user and returns `{ session, token }`. Send the token as `Authorization: Bearer <token>` for `GET /auth/session`, or as Socket.IO `auth.token`; the server derives the player identity from the session rather than trusting client-supplied IDs. Sessions are stored as HMAC-hashed tokens and expire according to `SESSION_TTL_DAYS`.
+
+Open rooms and their players are persisted through Prisma in `GameRoom` and `RoomPlayer` and rehydrated before the server starts accepting connections. PostgreSQL is required for production; Redis remains reserved for future multi-process ephemeral coordination.
 
 ## Multiplayer rooms
 
