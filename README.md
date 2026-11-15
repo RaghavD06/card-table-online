@@ -1,6 +1,6 @@
 # Card Table Online
 
-Phase 2 adds the server-authoritative multiplayer room foundation. Gameplay is intentionally not implemented yet.
+The server-authoritative multiplayer room foundation includes transport-independent Rummy and Pot engines in `packages/game-engine`. Room lifecycle and gameplay remain separate concerns.
 
 ## Setup
 
@@ -50,7 +50,7 @@ step rather than making every container boot mutate the database.
 - `apps/web`: Next.js App Router shell and design system.
 - `apps/server`: Node.js/TypeScript HTTP and Socket.IO boundary.
 - `packages/config`: validated environment configuration.
-- `packages/game-engine`: transport-independent game contracts.
+- `packages/game-engine`: transport-independent game contracts plus deterministic Rummy and Pot rules.
 - `packages/shared`: domain primitives and authentication boundary contracts.
 - `packages/socket-contracts`: typed Socket.IO event contracts.
 - `prisma/schema.prisma`: durable persistence foundation.

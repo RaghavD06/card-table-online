@@ -6,4 +6,4 @@ Phase 2 room lifecycle is implemented by `apps/server/src/rooms.ts`. `RoomManage
 
 `packages/shared/src/auth.ts` defines the application session shape and provider boundary. A future Auth.js adapter can map email/password, Google, and guest identities to this contract without coupling game code to a provider.
 
-Each game implements a transport-independent `GameEngine` contract. Socket.IO and persistence depend on that contract, not on game rules. Phase 2 does not start games or implement Poker, Rummy, or Pot rules.
+Each game implements a transport-independent `GameEngine` contract. Socket.IO and persistence depend on that contract, not on game rules. `packages/game-engine` contains deterministic Rummy and Pot implementations; the engines own deck order, private hands, turn validation, action events, and terminal state transitions.
