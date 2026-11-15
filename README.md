@@ -29,11 +29,13 @@ Open `http://localhost:3000`. The backend health endpoint is available at `http:
 
 The server owns room state, player presence, host assignment, readiness, Poker card generation, balances, and game actions. Clients receive public room state plus their own private projection; they never submit authoritative state.
 
-## Poker foundation
+## Game foundations
 
 `@card-table/game-engine` exposes a transport-independent `PokerEngine`. It uses `node:crypto` randomness by default, rotates the dealer and blinds, validates fold/check/call/bet/raise/all-in actions, evaluates seven-card hands, and settles main and side pots with deterministic split handling. The engine's internal state is never emitted; Socket.IO sends public state to the room and private hole cards only to their owner.
 
-The current UI is intentionally a small Poker table surface for validating the public/private contract. Rummy, Pot, social features, persistence of outcomes, and deployment are outside this phase.
+`RummyEngine` provides server-authoritative draw/discard turns and declaration scoring. `PotEngine` provides In-Between/Acey-Deucey with cryptographic card generation, configurable ace ranking, strict-between evaluation, pass handling, integer min/max bet validation, duplicate request protection, 1:1 balance settlement, and turn rotation. The Pot UI foundation is available at `/pot`.
+
+Social features, persistence of outcomes, and deployment are outside this phase.
 
 ## Multiplayer rooms
 

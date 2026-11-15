@@ -96,6 +96,51 @@ describe("Socket.IO room lifecycle", () => {
     realtime.io.close();
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
   });
+
+  it("starts Pot privately per player while broadcasting the public betting state", async () => {
+    const httpServer = createServer(createApp());
+    const realtime = createRealtimeServer({ httpServer });
+    await new Promise<void>((resolve) => httpServer.listen(0, resolve));
+    const address = httpServer.address();
+    if (!address || typeof address === "string") throw new Error("Test server did not bind");
+    const url = `http://localhost:${address.port}`;
+
+    const first = connect(url);
+    const second = connect(url);
+    clients.push(first, second);
+    await Promise.all([once(first, "system:ready"), once(second, "system:ready")]);
+
+    const roomCreated = once<RoomSummary>(first, "room:update");
+    first.emit("room:create", { gameType: "POT", maxPlayers: 2, playerId: "alice", playerName: "Alice" });
+    const room = await roomCreated;
+    await Promise.all([
+      onceMatching<RoomSummary>(first, "room:update", (candidate) => candidate.playerCount === 2),
+      onceMatching<RoomSummary>(second, "room:update", (candidate) => candidate.playerCount === 2),
+    ].map((promise, index) => {
+      if (index === 0) second.emit("room:join", { code: room.code, playerId: "bob", playerName: "Bob" });
+      return promise;
+    }));
+    first.emit("room:ready", { ready: true });
+    await onceMatching<RoomSummary>(first, "room:update", (candidate) => candidate.status === "WAITING");
+    second.emit("room:ready", { ready: true });
+    await onceMatching<RoomSummary>(first, "room:update", (candidate) => candidate.status === "READY");
+
+    const publicState = once<Record<string, unknown>>(first, "game:state");
+    const alicePrivate = once<{ balance: number }>(first, "game:private-state");
+    const bobPrivate = once<{ balance: number }>(second, "game:private-state");
+    first.emit("game:start");
+    const state = await publicState;
+
+    expect(state.gameType).toBe("POT");
+    expect(state.phase).toBe("BETTING");
+    expect(state).toHaveProperty("lowerCard");
+    expect(state).toHaveProperty("upperCard");
+    expect(await alicePrivate).toHaveProperty("balance", 1_000);
+    expect(await bobPrivate).toHaveProperty("balance", 1_000);
+
+    realtime.io.close();
+    await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+  });
 });
 
 function once<T = unknown>(socket: Socket, event: string) {
