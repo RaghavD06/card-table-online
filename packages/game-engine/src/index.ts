@@ -18,14 +18,16 @@ export interface PrivatePlayerState {
   data: unknown;
 }
 
-export interface EngineResult {
-  publicState: PublicGameState;
+export interface EngineResult<State extends PublicGameState = PublicGameState> {
+  publicState: State;
   privateStates: PrivatePlayerState[];
   events: Array<{ type: string; payload: unknown }>;
 }
 
-export interface GameEngine {
+export interface GameEngine<State extends PublicGameState = PublicGameState> {
   readonly gameType: GameType;
-  createInitialState(playerIds: string[]): PublicGameState;
-  applyCommand(state: PublicGameState, command: GameCommand): EngineResult;
+  createInitialState(playerIds: string[]): State;
+  applyCommand(state: State, command: GameCommand): EngineResult;
 }
+
+export * from "./poker";
