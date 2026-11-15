@@ -187,7 +187,7 @@ export class RummyEngine implements GameEngine<RummyState> {
       throw new RummyDomainError("INVALID_PHASE", "Draw before discarding");
     }
     const cardId = readCardId(payload);
-    const cardIndex = player.hand.findIndex((card, index) => cardId === cardKey(card, index));
+    const cardIndex = player.hand.findIndex((card) => cardId === cardKey(card));
     if (cardIndex < 0) throw new RummyDomainError("CARD_NOT_IN_HAND", "The selected card is not in the player's hand");
     const [card] = player.hand.splice(cardIndex, 1);
     if (!card) throw new RummyDomainError("CARD_NOT_IN_HAND", "The selected card is not in the player's hand");
@@ -230,7 +230,7 @@ export class RummyEngine implements GameEngine<RummyState> {
 }
 
 export function validateDeclaration(hand: RummyCard[], groups: RummyGroup[], wildJoker: RummyRank) {
-  const cardsById = new Map(hand.map((card, index) => [cardKey(card, index), card]));
+  const cardsById = new Map(hand.map((card) => [cardKey(card), card]));
   const used = new Set<string>();
   const parsedGroups = groups.map((group) => group.cardIds.map((id) => {
     const card = cardsById.get(id);
@@ -320,6 +320,6 @@ function readGroups(payload: unknown): RummyGroup[] {
   return payload.groups as RummyGroup[];
 }
 
-function cardKey(card: RummyCard, index: number) {
-  return card.id ?? `${card.rank}${card.suit}-${index}`;
+function cardKey(card: RummyCard) {
+  return card.id ?? `${card.rank}${card.suit}`;
 }
